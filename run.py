@@ -16,6 +16,9 @@ with open(LOGCONFIG, 'r') as lc:
     LOGGING_CONFIG = json.load(lc)
 dictConfig(LOGGING_CONFIG)
 
+global DATA_ROOT
+DATA_ROOT = Path('')
+
 try:
     from .defs import fmts
 except:
@@ -43,24 +46,16 @@ def get_token():
         return tf.read().split('\n')[0]
 
 
-def get_orcid():
+def get_config():
     """
-    Paste your orcid into '.orcid'
+    Config values that are not the d1 token go in 'config.json'.
     """
     # Set your ORCID
-    with open('.orcid', 'r') as orf:
-        return orf.read().split('\n')[0]
-
-
-def get_mn():
-    """
-    Put member node config into '.mn_config' in the format:
-
-        urn:node:SI;https://smithsonian.dataone.org/metacat/d1/mn/
-    """
-    # set the mn url
-    with open('.mn_config', 'r') as mcf:
-        return mcf.read().split('\n')[0].split(';')
+    CONFIG = MOD_LOC.joinpath('config.json')
+    with open(CONFIG, 'r') as lc:
+        config = json.load(lc)
+    DATA_ROOT = Path(config['data_root'])
+    return config['rightsholder'], config['nodeid'], config['mnurl']
 
 
 def parse_qdc_file():
@@ -106,6 +101,7 @@ def generate_system_metadata(pid: str, sid: str, format_id: str, science_object:
     :param science_object: The object that is being described
     :return:
     """
+    L = getLogger(__name__)
     # Check that the science_object is unicode, attempt to convert it if it's a str
     if not isinstance(science_object, bytes):
         if isinstance(science_object, str):
@@ -240,10 +236,10 @@ if __name__ == "__main__":
     L = getLogger(__name__)
     # Set config items
     auth_token = get_token()
-    orcid = get_orcid()
+    orcid, node, mn_url = get_config()
     L.info(f'Rightsholder ORCiD {orcid}')
-    node, mn_url = get_mn()
     L.info(f'Using {node} at {mn_url}')
+    L.info(f'Root path: {DATA_ROOT}')
     # Set the token in the request header
     options: dict = {"headers": {"Authorization": "Bearer " + auth_token}}
     # Create the Member Node Client
