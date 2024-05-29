@@ -109,6 +109,7 @@ def generate_system_metadata(pid: str, sid: str, format_id: str, science_object:
         else:
             raise ValueError('Supplied science_object is not unicode')
     size = len(science_object)
+    L.debug(f'Object is {size} bytes ({round(size/(1024*1024), 1)} MB)')
     md5 = hashlib.md5()
     md5.update(science_object)
     md5 = md5.hexdigest()
@@ -149,6 +150,7 @@ def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClien
     L = getLogger(__name__)
     # Create and upload the EML
     qdc_pid = str(uuid.uuid4())
+        L.debug(f'{doi} Generating sysmeta for metadata object')
     meta_sm = generate_system_metadata(pid=qdc_pid,
                                        sid=doi,
                                        format_id='http://ns.dataone.org/metadata/schema/onedcx/v1.0',
@@ -180,6 +182,7 @@ def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClien
     # Create and upload the resource map
     ore_pid = str(uuid.uuid4())
     ore = createSimpleResourceMap(ore_pid, qdc_pid, data_pids)
+        L.debug(f'{doi} Generating sysmeta for resource map')
     ore_meta = generate_system_metadata(pid=ore_pid,
                                         sid=doi,
                                         format_id='http://www.openarchives.org/ore/terms',
