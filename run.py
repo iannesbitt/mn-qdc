@@ -212,6 +212,7 @@ def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClien
             oi += 1
             client.delete(pid=qdc_pid)
         L.info(f'Successfully deleted {oi} objects.')
+        raise BaseException(e)
     return qdc_pid
 
 
