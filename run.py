@@ -148,48 +148,70 @@ def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClien
     """
     """
     L = getLogger(__name__)
-    # Create and upload the EML
-    qdc_pid = str(uuid.uuid4())
+    qdc_pid, data_pids, ore_pid = None, None, None
+    try:
+        # Create and upload the EML
+        qdc_pid = str(uuid.uuid4())
         L.debug(f'{doi} Generating sysmeta for metadata object')
-    meta_sm = generate_system_metadata(pid=qdc_pid,
-                                       sid=doi,
-                                       format_id='http://ns.dataone.org/metadata/schema/onedcx/v1.0',
-                                       science_object=qdc_bytes,
-                                       orcid=orcid)
-    rmd = client.create(qdc_pid, qdc_bytes, meta_sm)
-    L.debug(f'{doi} Received response for metadata object upload:\n{rmd}')
-    # Get and upload the data
-    doidir = Path(doi)
-    files = []
-    if doidir.exists():
-        files = doidir.glob('*')
-    else:
-        raise FileNotFoundError(f'No directory found at {doidir}')
-    # keep track of data pids for resource mapping
-    data_pids = []
-    for f in files:
-        fformat = get_format(f)
-        data_pid = str(uuid.uuid4())
-        data_pids.append(data_pid)
-        data_bytes = f.read_bytes()
-        data_sm = generate_system_metadata(pid=data_pid,
+        meta_sm = generate_system_metadata(pid=qdc_pid,
                                            sid=doi,
-                                           format_id=fformat,
-                                           science_object=data_bytes,
+                                           format_id='http://ns.dataone.org/metadata/schema/onedcx/v1.0',
+                                           science_object=qdc_bytes,
                                            orcid=orcid)
-        dmd = client.create(data_pid, data_bytes, data_sm)
-        L.debug(f'{doi} Received response for science object upload:\n{dmd}')
-    # Create and upload the resource map
-    ore_pid = str(uuid.uuid4())
-    ore = createSimpleResourceMap(ore_pid, qdc_pid, data_pids)
+        L.debug(f'{doi} Uploading metadata object')
+        rmd = 'test' #client.create(qdc_pid, qdc_bytes, meta_sm)
+        L.debug(f'{doi} Received response for metadata object upload:\n{rmd}')
+        # Get and upload the data
+        doidir = Path(DATA_ROOT / doi)
+        files = []
+        if doidir.exists():
+            files = doidir.glob('*')
+        else:
+            raise FileNotFoundError(f'No directory found at {doidir}')
+        # keep track of data pids for resource mapping
+        data_pids = []
+        for f in files:
+            fformat = get_format(f)
+            data_pid = str(uuid.uuid4())
+            data_pids.append(data_pid)
+            L.debug(f'{doi} Reading {f.name}')
+            data_bytes = f.read_bytes()
+            L.debug(f'{doi} Generating sysmeta for {f.name}')
+            data_sm = generate_system_metadata(pid=data_pid,
+                                               sid=doi,
+                                               format_id=fformat,
+                                               science_object=data_bytes,
+                                               orcid=orcid)
+            L.info(f'{doi} Uploading {f.name}')
+            dmd = 'test' #client.create(data_pid, data_bytes, data_sm)
+            L.debug(f'{doi} Received response for science object upload:\n{dmd}')
+        # Create and upload the resource map
+        ore_pid = str(uuid.uuid4())
+        ore = createSimpleResourceMap(ore_pid, qdc_pid, data_pids)
         L.debug(f'{doi} Generating sysmeta for resource map')
-    ore_meta = generate_system_metadata(pid=ore_pid,
-                                        sid=doi,
-                                        format_id='http://www.openarchives.org/ore/terms',
-                                        science_object=ore.serialize(),
-                                        orcid=orcid)
-    mmd = client.create(ore_pid, ore.serialize(), ore_meta)
-    L.debug(f'{doi} Received response for resource map upload:\n{mmd}')
+        ore_meta = generate_system_metadata(pid=ore_pid,
+                                            sid=doi,
+                                            format_id='http://www.openarchives.org/ore/terms',
+                                            science_object=ore.serialize(),
+                                            orcid=orcid)
+        L.info(f'{doi} Uploading resource map')
+        mmd = 'test' #client.create(ore_pid, ore.serialize(), ore_meta)
+        L.debug(f'{doi} Received response for resource map upload:\n{mmd}')
+    except Exception as e:
+        L.error(f'{doi} upload failed')
+        L.info(f'Removing objects...')
+        oi = 0
+        if ore_pid:
+            oi += 1
+            client.delete(pid=ore_pid)
+        if data_pids:
+            for pid in data_pids:
+                oi += 1
+                client.delete(pid=pid)
+        if qdc_pid:
+            oi += 1
+            client.delete(pid=qdc_pid)
+        L.info(f'Successfully deleted {oi} objects.')
     return qdc_pid
 
 
