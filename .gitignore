@@ -1,3 +1,8 @@
+# DataONE
+.d1_token
+.mn_config
+.orcid
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
