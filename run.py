@@ -241,7 +241,7 @@ if __name__ == "__main__":
     # Set config items
     auth_token = get_token()
     orcid = get_orcid()
-    L.info(f'Using ORCiD {orcid}')
+    L.info(f'Rightsholder ORCiD {orcid}')
     node, mn_url = get_mn()
     L.info(f'Using {node} at {mn_url}')
     # Set the token in the request header
@@ -249,5 +249,5 @@ if __name__ == "__main__":
     # Create the Member Node Client
     client: MemberNodeClient_2_0 = MemberNodeClient_2_0(mn_url, **options)
     qdcs = parse_qdc_file()
-    L.info(f'Found {len(qdcs)} QDC objects')
+    L.info(f'Found {len(qdcs)} QDC records')
     create_packages(qdcs=qdcs, orcid=orcid, client=client)
