@@ -61,6 +61,10 @@ def get_config():
 
 def parse_qdc_file():
     """
+    Parse the QDC file. Get rid of the wrapper tags, then split on the
+    split string.
+    Note that each QDC string will be missing the split string, and it
+    will need to be added back in a subsequent step.
     """
     with open('qdc.xml', 'r') as f:
         qdcb = f.read()
@@ -134,6 +138,8 @@ def generate_public_access_policy():
 
 def get_format(fmt: Path):
     """
+    Test the format based on the file suffix. If none is found, fall back to
+    application/octet-stream.
     """
     L = getLogger(__name__)
     if fmt.suffix:
@@ -147,6 +153,17 @@ def get_format(fmt: Path):
 
 def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClient_2_0):
     """
+    Create a data package in 6 steps:
+
+    1. Generate sysmeta for QDC metadata object
+    2. Upload metadata object and its sysmeta
+    3. Search the DOI dir structure and generate sysmeta for each data object
+    4. Upload each data object and its sysmeta
+    5. Generate sysmeta for resource map
+    6. Upload resource map and its sysmeta
+
+    If an error is encountered, delete all package PIDs from the MN and raise
+    an error.
     """
     L = getLogger(__name__)
     qdc_pid, data_pids, ore_pid = None, None, None
@@ -220,6 +237,7 @@ def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClien
 
 def report(succ: int, fail: int, finished_dois: list, failed_dois: list):
     """
+    Generate a short report with the successes and failures of the process.
     """
     L = getLogger(__name__)
     finished_str = "\n".join(str(x) for x in finished_dois)
@@ -278,3 +296,4 @@ if __name__ == "__main__":
     qdcs = parse_qdc_file()
     L.info(f'Found {len(qdcs)} QDC records')
     create_packages(qdcs=qdcs, orcid=orcid, client=client)
+    client._session.close()
