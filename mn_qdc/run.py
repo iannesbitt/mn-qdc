@@ -275,7 +275,7 @@ def create_packages(qdcs: list, orcid: str, client: MemberNodeClient_2_0):
     except KeyboardInterrupt:
         L.info('Caught KeyboardInterrupt; generating report...')
     finally:
-        report(succ=i-er, fail=er, finished_dois=succ_list, failed_dois=err_list)
+        report(succ=i-1-er, fail=er, finished_dois=succ_list, failed_dois=err_list)
 
 
 if __name__ == "__main__":
