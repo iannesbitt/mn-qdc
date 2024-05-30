@@ -10,8 +10,8 @@ from d1_common.resource_map import createSimpleResourceMap
 
 from logging import getLogger
 from logging.config import dictConfig
-MOD_LOC = Path(__file__).parent.absolute()
-LOGCONFIG = MOD_LOC.joinpath('log/config.json')
+CONFIG_LOC = Path('~/.config/mn-qdc/').parent.absolute()
+LOGCONFIG = CONFIG_LOC.joinpath('log/config.json')
 with open(LOGCONFIG, 'r') as lc:
     LOGGING_CONFIG = json.load(lc)
 dictConfig(LOGGING_CONFIG)
@@ -39,7 +39,7 @@ Successful packages:
 
 def get_token():
     """
-    Paste your auth token into '.d1_token'
+    Paste your auth token into '~/.d1_token'
     """
     # Set the D1 token
     with open('.d1_token', 'r') as tf:
@@ -52,21 +52,21 @@ def get_config():
     """
     global DATA_ROOT
     # Set your ORCID
-    CONFIG = MOD_LOC.joinpath('config.json')
+    CONFIG = CONFIG_LOC.joinpath('config.json')
     with open(CONFIG, 'r') as lc:
         config = json.load(lc)
     DATA_ROOT = Path(config['data_root'])
-    return config['rightsholder_orcid'], config['nodeid'], config['mnurl']
+    return config['rightsholder_orcid'], config['nodeid'], config['mnurl'], config['qdc_file']
 
 
-def parse_qdc_file():
+def parse_qdc_file(qdc_file):
     """
     Parse the QDC file. Get rid of the wrapper tags, then split on the
     split string.
     Note that each QDC string will be missing the split string, and it
     will need to be added back in a subsequent step.
     """
-    with open('qdc.xml', 'r') as f:
+    with open(qdc_file, 'r') as f:
         qdcb = f.read()
         qdcs = qdcb.split('<wrapper>')[1].split('</wrapper>')[0].split(f'\n{split_str}')
     return qdcs
@@ -285,7 +285,7 @@ if __name__ == "__main__":
     L = getLogger(__name__)
     # Set config items
     auth_token = get_token()
-    orcid, node, mn_url = get_config()
+    orcid, node, mn_url, qdc_file = get_config()
     L.info(f'Rightsholder ORCiD {orcid}')
     L.info(f'Using {node} at {mn_url}')
     L.info(f'Root path: {DATA_ROOT}')
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     options: dict = {"headers": {"Authorization": "Bearer " + auth_token}}
     # Create the Member Node Client
     client: MemberNodeClient_2_0 = MemberNodeClient_2_0(mn_url, **options)
-    qdcs = parse_qdc_file()
+    qdcs = parse_qdc_file(qdc_file)
     L.info(f'Found {len(qdcs)} QDC records')
     create_packages(qdcs=qdcs, orcid=orcid, client=client)
     client._session.close()

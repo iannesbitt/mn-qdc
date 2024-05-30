@@ -18,14 +18,14 @@
         "level": "WARNING",
         "formatter": "standard",
         "class": "logging.FileHandler",
-        "filename": "/home/nesbitt/bin/mn-qdc/log/mn-qdc.err",
+        "filename": "/home/nesbitt/mn-qdc/log/mn-qdc.err",
         "mode": "a"
       },
       "debugfile": {
         "level": "DEBUG",
         "formatter": "standard",
         "class": "logging.handlers.RotatingFileHandler",
-        "filename": "/home/nesbitt/bin/mn-qdc/log/mn-qdc.log",
+        "filename": "/home/nesbitt/mn-qdc/log/mn-qdc.log",
         "mode": "a",
         "maxBytes": 52428800,
         "backupCount": 10
