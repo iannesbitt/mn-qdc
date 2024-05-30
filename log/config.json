@@ -36,7 +36,7 @@
         "handlers": [
           "stream", "debugfile", "errorfile"
         ],
-        "level": "INFO",
+        "level": "DEBUG",
         "propagate": false
       }
     }

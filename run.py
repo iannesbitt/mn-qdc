@@ -50,12 +50,13 @@ def get_config():
     """
     Config values that are not the d1 token go in 'config.json'.
     """
+    global DATA_ROOT
     # Set your ORCID
     CONFIG = MOD_LOC.joinpath('config.json')
     with open(CONFIG, 'r') as lc:
         config = json.load(lc)
     DATA_ROOT = Path(config['data_root'])
-    return config['rightsholder'], config['nodeid'], config['mnurl']
+    return config['rightsholder_orcid'], config['nodeid'], config['mnurl']
 
 
 def parse_qdc_file():
@@ -198,21 +199,22 @@ def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClien
         mmd = 'test' #client.create(ore_pid, ore.serialize(), ore_meta)
         L.debug(f'{doi} Received response for resource map upload:\n{mmd}')
     except Exception as e:
-        L.error(f'{doi} upload failed')
+        L.error(f'{doi} upload failed ({e})')
         L.info(f'Removing objects...')
         oi = 0
-        if ore_pid:
-            oi += 1
-            client.delete(pid=ore_pid)
-        if data_pids:
-            for pid in data_pids:
+        if not (rmd == 'test'):
+            if ore_pid:
                 oi += 1
-                client.delete(pid=pid)
-        if qdc_pid:
-            oi += 1
-            client.delete(pid=qdc_pid)
-        L.info(f'Successfully deleted {oi} objects.')
-        raise BaseException(e)
+                client.delete(pid=ore_pid)
+            if data_pids:
+                for pid in data_pids:
+                    oi += 1
+                    client.delete(pid=pid)
+            if qdc_pid:
+                oi += 1
+                client.delete(pid=qdc_pid)
+            L.info(f'Successfully deleted {oi} objects.')
+            raise BaseException(e)
     return qdc_pid
 
 
@@ -238,7 +240,10 @@ def create_packages(qdcs: list, orcid: str, client: MemberNodeClient_2_0):
     try:
         for qdc in qdcs:
             i += 1
+            if not qdc:
+                continue
             qdc = f'{split_str}{qdc}'
+            L.debug(f'QDC:\n{qdc}')
             doi = qdc.split('<dc:identifier>')[1].split('</dc:identifier>')[0]
             L.info(f'({i}/{n}) Working on {doi}')
             try:
