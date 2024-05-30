@@ -27,7 +27,7 @@
         "class": "logging.handlers.RotatingFileHandler",
         "filename": "/home/nesbitt/bin/mn-qdc/log/mn-qdc.log",
         "mode": "a",
-        "maxBytes": 1048576,
+        "maxBytes": 52428800,
         "backupCount": 10
       }
     },
