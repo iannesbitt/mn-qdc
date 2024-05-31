@@ -6,7 +6,7 @@ with open('README.md', 'r') as fh:
 setuptools.setup(
     author='Ian Nesbitt',
     author_email='nesbitt@nceas.ucsb.edu',
-    name='mn-qdc',
+    name='mn_qdc',
     version='0.0.1',
     description='DataONE Figshare Qualified Dublin Core staging workflow',
     long_description=long_description,
@@ -25,8 +25,8 @@ setuptools.setup(
     },
     entry_points = {
         'console_scripts': [
-            'mnqdc=mn_qdc.run:__main__',
-            'testmnqdc=mn_qdc.test:__main__'
+            'mnqdc=mn_qdc.run:main',
+            'testmnqdc=mn_qdc.test:main'
         ],
     },
     python_requires='>=3.9, <4.0',
