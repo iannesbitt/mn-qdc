@@ -1,13 +1,31 @@
-from .run import get_config, get_token, get_format,\
-    getLogger, DATA_ROOT, MemberNodeClient_2_0,\
+from .run import get_token, get_format, json,\
+    getLogger, MemberNodeClient_2_0, CONFIG_LOC,\
     parse_qdc_file, split_str, Path, report
+
+global DATA_ROOT
+DATA_ROOT = Path('')
+
+
+def get_config():
+    """
+    Config values that are not the d1 token go in 'config.json'.
+    """
+    global DATA_ROOT
+    # Set your ORCID
+    CONFIG = CONFIG_LOC.joinpath('config.json')
+    with open(CONFIG, 'r') as lc:
+        config = json.load(lc)
+    DATA_ROOT = Path(config['data_root'])
+    return config['rightsholder_orcid'], config['nodeid'], config['mnurl'], config['qdc_file']
 
 
 def testpaths(doi: str):
     """
     Test directory structure for a given DOI. If no dir is found, then decrease
     the version at the end of the DOI until a directory is found that matches.
+    Return a list of files.
     """
+    global DATA_ROOT
     L = getLogger(__name__)
     doidir = Path(DATA_ROOT / doi)
     flist = []
@@ -17,14 +35,15 @@ def testpaths(doi: str):
     else:
         # we need to figure out where the closest version is (or if it exists?)
         try:
-            [doiroot, version] = doidir.stem.split('.v')
+            L.info(f'{doidir} does not exist')
+            [doiroot, version] = doidir.__str__().split('.v')
             version = int(version)
             versions = 0
-            L.info(f'{doi} found version {version}')
+            L.info(f'{doi} starting with version {version}')
             while True:
                 version -= 1
                 moddir = Path(DATA_ROOT / f'{doiroot}.v{version}')
-                L.debug(f'Trying {moddir}')
+                L.info(f'Trying {moddir}')
                 if moddir.exists():
                     versions += 1
                     fi = 0
@@ -37,6 +56,12 @@ def testpaths(doi: str):
                         continue
                     else:
                         L.info(f'Found {versions} versions of doi root {doiroot}')
+                        break
+                else:
+                    if version > 0:
+                        continue
+                    else:
+                        L.info(f'Found {versions} versions of doi root {doi}')
                         break
         except ValueError:
             L.info(f'{doi} has no version.')
@@ -80,17 +105,17 @@ def testdata(qdcs: list):
         L.info('Caught KeyboardInterrupt; generating report...')
     finally:
         report(succ=i-er, fail=er, finished_dois=succ_list, failed_dois=err_list)
-        
 
 
-if __name__ == "__main__":
+def main():
     """
     Set config items then start test loop.
     """
+    global DATA_ROOT
     L = getLogger(__name__)
     # Set config items
     auth_token = get_token()
-    orcid, node, mn_url = get_config()
+    orcid, node, mn_url, qdc_file = get_config()
     L.info(f'Rightsholder ORCiD {orcid}')
     L.info(f'Using {node} at {mn_url}')
     L.info(f'Root path: {DATA_ROOT}')
@@ -98,7 +123,14 @@ if __name__ == "__main__":
     options: dict = {"headers": {"Authorization": "Bearer " + auth_token}}
     # Create the Member Node Client
     client: MemberNodeClient_2_0 = MemberNodeClient_2_0(mn_url, **options)
-    qdcs = parse_qdc_file()
+    qdcs = parse_qdc_file(qdc_file)
     L.info(f'Found {len(qdcs)} QDC records')
     testdata(qdcs=qdcs)
     client._session.close()
+
+
+if __name__ == "__main__":
+    """
+    Running directly
+    """
+    main()
