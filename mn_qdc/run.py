@@ -10,7 +10,7 @@ from d1_common.resource_map import createSimpleResourceMap
 
 from logging import getLogger
 from logging.config import dictConfig
-CONFIG_LOC = Path('~/.config/mn-qdc/').parent.absolute()
+CONFIG_LOC = Path('~/.config/mn-qdc/').expanduser().absolute()
 LOGCONFIG = CONFIG_LOC.joinpath('log/config.json')
 with open(LOGCONFIG, 'r') as lc:
     LOGGING_CONFIG = json.load(lc)
@@ -42,7 +42,7 @@ def get_token():
     Paste your auth token into '~/.d1_token'
     """
     # Set the D1 token
-    with open('.d1_token', 'r') as tf:
+    with open(Path(CONFIG_LOC / '.d1_token'), 'r') as tf:
         return tf.read().split('\n')[0]
 
 
@@ -151,6 +151,56 @@ def get_format(fmt: Path):
     return "application/octet-stream"
 
 
+def search_versions(doi: str):
+    """
+    Search the directory structure for a given DOI. If no dir is found, then
+    decrease the version at the end of the DOI until a directory is found that
+    matches. Return a list of files.
+    """
+    global DATA_ROOT
+    L = getLogger(__name__)
+    doidir = Path(DATA_ROOT / doi)
+    flist = []
+    if doidir.exists():
+        for f in doidir.glob('*'):
+            flist.append(f)
+    else:
+        # we need to figure out where the closest version is (or if it exists?)
+        try:
+            [doiroot, version] = doidir.__str__().split('.v')
+            version = int(version)
+            versions = 0
+            L.info(f'{doi} starting with version {version}')
+            while True:
+                version -= 1
+                moddir = Path(DATA_ROOT / f'{doiroot}.v{version}')
+                L.info(f'Trying {moddir}')
+                if moddir.exists():
+                    versions += 1
+                    fi = 0
+                    for f in moddir.glob('*'):
+                        flist.append(f)
+                        fi += 1
+                    L.info(f'Found {fi} existing files in version {version} directory')
+                    if version > 0:
+                        L.info('Looking for previous versions...')
+                        continue
+                    else:
+                        L.info(f'Found {versions} versions of doi root {doiroot}')
+                        break
+                else:
+                    if version > 0:
+                        continue
+                    else:
+                        L.info(f'Found {versions} versions of doi root {doi}')
+                        break
+        except ValueError:
+            L.info(f'{doi} has no version.')
+        except Exception as e:
+            L.error(f'{repr(e)} has occurred: {e}')
+    return flist
+
+
 def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClient_2_0):
     """
     Create a data package in 6 steps:
@@ -177,7 +227,7 @@ def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClien
                                            science_object=qdc_bytes,
                                            orcid=orcid)
         L.debug(f'{doi} Uploading metadata object')
-        rmd = 'test' #client.create(qdc_pid, qdc_bytes, meta_sm)
+        rmd = client.create(qdc_pid, qdc_bytes, meta_sm)
         L.debug(f'{doi} Received response for metadata object upload:\n{rmd}')
         # Get and upload the data
         doidir = Path(DATA_ROOT / doi)
@@ -185,7 +235,10 @@ def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClien
         if doidir.exists():
             files = doidir.glob('*')
         else:
-            raise FileNotFoundError(f'No directory found at {doidir}')
+            L.info(f'{doidir} does not exist. Trying other versions...')
+            files = search_versions(doi)
+            if len(files) == 0:
+                raise FileNotFoundError(f'{doi} No files found for this version chain!')
         # keep track of data pids for resource mapping
         data_pids = []
         for f in files:
@@ -201,7 +254,7 @@ def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClien
                                                science_object=data_bytes,
                                                orcid=orcid)
             L.info(f'{doi} Uploading {f.name}')
-            dmd = 'test' #client.create(data_pid, data_bytes, data_sm)
+            dmd = client.create(data_pid, data_bytes, data_sm)
             L.debug(f'{doi} Received response for science object upload:\n{dmd}')
         # Create and upload the resource map
         ore_pid = str(uuid.uuid4())
@@ -213,7 +266,7 @@ def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClien
                                             science_object=ore.serialize(),
                                             orcid=orcid)
         L.info(f'{doi} Uploading resource map')
-        mmd = 'test' #client.create(ore_pid, ore.serialize(), ore_meta)
+        mmd = client.create(ore_pid, ore.serialize(), ore_meta)
         L.debug(f'{doi} Received response for resource map upload:\n{mmd}')
     except Exception as e:
         L.error(f'{doi} upload failed ({e})')
@@ -278,7 +331,7 @@ def create_packages(qdcs: list, orcid: str, client: MemberNodeClient_2_0):
         report(succ=i-1-er, fail=er, finished_dois=succ_list, failed_dois=err_list)
 
 
-if __name__ == "__main__":
+def main():
     """
     Set config items then start upload loop.
     """
@@ -297,3 +350,10 @@ if __name__ == "__main__":
     L.info(f'Found {len(qdcs)} QDC records')
     create_packages(qdcs=qdcs, orcid=orcid, client=client)
     client._session.close()
+
+
+if __name__ == "__main__":
+    """
+    Running directly
+    """
+    main()
