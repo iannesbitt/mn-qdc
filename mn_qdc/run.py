@@ -85,7 +85,7 @@ def generate_sys_meta(pid: str, sid: str, format_id: str, size: int, md5, now, o
     # create sysmeta and fill out relevant fields
     sys_meta = dataoneTypes.systemMetadata()
     sys_meta.identifier = str(pid)
-    sys_meta.seriesId = sid
+    #sys_meta.seriesId = sid
     sys_meta.formatId = format_id
     sys_meta.size = size
     sys_meta.rightsHolder = orcid
@@ -272,19 +272,18 @@ def create_package(orcid: str, doi: str, qdc_bytes: str, client: MemberNodeClien
         L.error(f'{doi} upload failed ({e})')
         L.info(f'Removing objects...')
         oi = 0
-        if not (rmd == 'test'):
-            if ore_pid:
+        if ore_pid:
+            oi += 1
+            client.delete(pid=ore_pid)
+        if data_pids:
+            for pid in data_pids:
                 oi += 1
-                client.delete(pid=ore_pid)
-            if data_pids:
-                for pid in data_pids:
-                    oi += 1
-                    client.delete(pid=pid)
-            if qdc_pid:
-                oi += 1
-                client.delete(pid=qdc_pid)
-            L.info(f'Successfully deleted {oi} objects.')
-            raise BaseException(e)
+                client.delete(pid=pid)
+        if qdc_pid:
+            oi += 1
+            client.delete(pid=qdc_pid)
+        L.info(f'Successfully deleted {oi} objects.')
+        raise BaseException(e)
     return qdc_pid
 
 

@@ -39,3 +39,7 @@ fmts = {
     '.fastq': 'application/x-fasta',
     '.fas': 'application/x-fasta',
 }
+
+figshare_eml = {
+    
+}

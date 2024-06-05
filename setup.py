@@ -17,6 +17,7 @@ setuptools.setup(
     install_requires=[
         'dataone.common',
         'dataone.libclient',
+        'metapype',
     ],
     extras_require={
         'dev': [
