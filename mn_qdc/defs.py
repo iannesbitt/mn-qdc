@@ -40,6 +40,3 @@ fmts = {
     '.fas': 'application/x-fasta',
 }
 
-figshare_eml = {
-    
-}
